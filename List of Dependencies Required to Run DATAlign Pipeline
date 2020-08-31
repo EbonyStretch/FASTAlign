@@ -7,8 +7,6 @@ Your fastq/fasta of choice that contains DNA/RNA to match your database
 Programs:
 FastQC
 Seqtk
-HMM Meta-marc
-HMM Meta-Spades
 Trimmomatic
 Bowtie2
 GROOT
