@@ -1,2 +1,2 @@
 # DATAlign
-A simple and streamlined bioinformatics pipeline that runs metagenomic data sets. 
+A simple and streamlined bioinformatics pipeline to extract custom  database sequences from next-generation sequencing data
