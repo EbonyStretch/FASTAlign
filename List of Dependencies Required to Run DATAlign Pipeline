@@ -4,9 +4,10 @@
 Your database of choice that contains fastq DNA/RNA to match your files
 Your fastq/fasta of choice that contains DNA/RNA to match your database
 
-Programs:
+Dependencies that need to be downloaded:
 FastQC
 Seqtk
 Trimmomatic
 Bowtie2
 GROOT
+SAMtools
