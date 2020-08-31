@@ -1,0 +1,14 @@
+##This is a list of dependecies requiered to run the DATAlign Pipeline
+##This is under construction and is not complete. Thank you for your patience during this time. 
+
+Your database of choice that contains fastq DNA/RNA to match your files
+Your fastq/fasta of choice that contains DNA/RNA to match your database
+
+Programs:
+FastQC
+Seqtk
+HMM Meta-marc
+HMM Meta-Spades
+Trimmomatic
+Bowtie2
+GROOT
