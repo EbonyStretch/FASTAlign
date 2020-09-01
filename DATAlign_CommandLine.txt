@@ -1,76 +1,75 @@
 ######### DATAlign Pipeline
-###########################
+
+######### Place all .fastq files to be analyzed into a single working directory
+######### Rename .fastq files such that each read pair ends with _R1.fastq or _R2.fastq
+######### Currently DATAlign only supports .fastq input; gzipped files coming soon, but code can be manipulated to run gzipped files easily
+######### Make filenames reference list for all subsequent codes; creates two files titled "filenames" and "filenames_uniq" containing file names listed
+
+ls *.fastq | cut -f 1 -d '.' > filenames
+ls *.fastq | sed 's/_R1.*//' | sed 's/_R2.*//' | uniq > filenames_uniq
 
 
-######### Take all filenames ending in .fq.gz to make filenames reference list for all subsequent codes
-ls *.fq.gz | cut -f 1 -d '.' > filenames
-ls *.fq.gz | sed "s/_R1.*//" | sed "s/_R2.*//" | uniq > filenames_trim
+######### Build and index desired database using bowtie2 
+######### For antibiotic resistance database, download most recent data from: https://card.mcmaster.ca/download, place contents in working directory
+
+bowtie2-build nucleotide_fasta_protein_homolog_model.fasta ARG_db
 
 
-######### Build and index database using bowtie2 - we will use the CARD and ICE.fasta file. But any one will work
-bowtie2-build ICE_seq_all.fasta ICE_db
-bowtie2-build CARD_mobile_merged.fasta ARG_db
+######### Trim/filter and QC fastq files
+
+#Trim/filter fastq files based on quality – For paired-end reads
+
+while read p; do trimmomatic PE "$p"_R1.fastq "$p"_R2.fastq "$p"_R1_paired.fastq.gz "$p"_R1_unpaired.fastq.gz "$p"_R2_paired.fastq.gz "$p"_R2_unpaired.fastq.gz ILLUMINACLIP:TruSeq3-PE.fa:2:30:10:8:true SLIDINGWINDOW:4:20; done < filenames_uniq
 
 
-######### Clean up the fq.gz files: trim and check for quality
+#QC trimmed fastq files
 
-# Trim fq files based on quality (Phred score 25) and length (149 nt) 
-while read p; do java -jar /opt/biotools/trimmomatic/trimmomatic-0.36.jar PE -phred33 "$p"_R1.fq.gz "$p"_R2.fq.gz "$p"_R1_paired.fq.gz "$p"_R1_unpaired.fq.gz "$p"_R2_paired.fq.gz "$p"_R2_unpaired.fq.gz ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 LEADING:25 TRAILING:25 SLIDINGWINDOW:4:15 MINLEN:149; done < filenames_trim
-
-
-# QC trimmed fq.gz files again. This time they have been trimmed and should look different from before.
-while read p; do fastqc "$p"_paired.fq.gz; done < filenames
+while read p; do fastqc "$p"_paired.fastq.gz; done < filenames
 
 
+######## Normalize read numbers across multiple fastq files
 
-######## Normalize read numbers from multiple fastq files
-# Compute the number of reads in each fq.gz file
-while read p; do gunzip -c "$p"_paired.fq.gz | wc -l | awk '{print $1 / 4}' >> numreads; done < filenames
+#Compute the number of reads in each fastq
 
-# Compute the minimum number of reads across all fq in the folder
+while read p; do gunzip -c "$p"_paired.fastq.gz | wc -l | awk '{print $1 / 4}' >> numreads; done < filenames
+
+
+#Compute the minimum number of reads across all fastqs in the folder
+
 minreads=$(cat numreads | sort -n | head -1)
 
-#subsample fq.gz files
-while read p; do seqtk sample -s100 "$p"_paired.fq.gz $minreads | gzip > "$p".sub.fastq.gz; done < filenames
+
+#subsample fastq files
+
+while read p; do seqtk sample -s100 "$p"_paired.fastq.gz $minreads | gzip > "$p".sub.fastq.gz; done < filenames
 
 
-######## Bowtie2 alignment pipeline
-# first pipe: runs alignment of fq.gz to database, creates .sam file, extracts and outputs only mapped/aligned reads
+######## Alignment pipeline
+
+# first pipe: runs alignment of fastq to database, creates .sam file, extracts and outputs only mapped/aligned reads
 # second pipe: converts .sam to .bam
 # third pipe: sorts the bam file in order of database sequence appearance
 
-while read p; do bowtie2 --threads 2 -x ICE_db -1 "$p"_R1.sub.fastq.gz -2 "$p"_R2.sub.fastq.gz --no-unal | samtools view -bS - | samtools sort -o - > "$p"_ICE.bam; done < filenames_trim
-
-while read p; do bowtie2 --threads 2 -x ARG_db -1 "$p"_R1.sub.fastq.gz -2 "$p"_R2.sub.fastq.gz --no-unal | samtools view -bS - | samtools sort -o - > "$p"_ARG.bam; done < filenames_trim
+while read p; do bowtie2 --threads 2 -x ARG_db -1 "$p"_R1.sub.fastq.gz -2 "$p"_R2.sub.fastq.gz --no-unal | samtools view -bS - | samtools sort -o - > "$p"_ARG.bam; done < filenames_uniq
 
 
 ######## create comparison plots of mapped reads
 
 # create table of total mapped reads in each sample  
-while read p; do mapped=$(samtools view -c -F 4 ${p}_ICE.bam); printf "$p\t$mapped\n"; done < filenames_trim > ICE-mapped.tsv 
 
 while read p; do mapped=$(samtools view -c -F 4 ${p}_ARG.bam); printf "$p\t$mapped\n"; done < filenames_trim > ARG-mapped.tsv 
 
 
 # create barplot to compare TOTAL mapped reads across samples
-gnuplot -e "set terminal png size 640,300; set output 'ICE_mapped_read_barplot.png'; set boxwidth 0.4; set style fill solid 1.00; set terminal png nocrop enhanced font 'verdana,10' size 640,300; set nokey; set title 'ICE Mapped Reads'; set ylabel 'Mapped Reads'; plot 'ICE-mapped.tsv' using 2:xticlabels(1) with boxes lt rgb '#406090'"
 
 gnuplot -e "set terminal png size 640,300; set output 'ARG_mapped_read_barplot.png'; set boxwidth 0.4; set style fill solid 1.00; set terminal png nocrop enhanced font 'verdana,10' size 640,300; set nokey; set title 'ARG Mapped Reads'; set ylabel 'Mapped Reads'; plot 'ARG-mapped.tsv' using 2:xticlabels(1) with boxes lt rgb '#406090'"
 
 
-############Construction Zone Below#############
+## Generate report of mapped reads that cover 20% of target loci ("-c 0.2"); optional: change number value to change coverage cutoff
+
+while read p; do groot report --bamFile "$p"_ARG.bam -c 0.2 > "$p".report; done < filenames_uniq
 
 
-## create coverage table with one column as [base location] and another column [coverage at that base]###
-while read p; do genomeCoverageBed -d -ibam "$p".bam | awk '{$1=""}1' - | awk '{$1=$1}1' > "$p".coverage.tsv; done < filenames
-
-
-
-### HMM Meta-Mark ##
-mmarc --i1 *1.fq.gz --i2 *2.fq.gz -o day_9_mmarc -f day_9_mmarc -d -l 3 -m -t 4
-
-mmarc -i  -o mmarc -f day_9_mmarc -d -l 3 -m -t 4
-
-
+######## coverage plot-generating code coming soon!!
 
 
