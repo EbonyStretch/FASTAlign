@@ -1,4 +1,4 @@
-######### DATAlign Pipeline
+######### FASTAlign Pipeline
 
 ######### Place all .fastq files to be analyzed into a single working directory
 ######### Rename .fastq files such that each read pair ends with _R1.fastq or _R2.fastq
