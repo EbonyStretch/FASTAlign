@@ -1,10 +1,12 @@
 ##This is a list of dependecies requiered to run the FASTAlign Pipeline
 ##This is under construction and is not complete. Thank you for your patience during this time. 
 
-Your database of choice in FASTA format which contains the sequence(s) of interest
-Your FASTQ files from your sequencing output
+First, you will need to obtain a database of choice, in FASTA format which contains the sequence(s) of interest to you.
+Second, you will need your FASTQ files, specfically from your sequencing output machine. Or, you may use other FASTA files you see fit. 
 
-Dependencies that need to be downloaded:
+This list contians all the dependencies that are need to run FASTAlign. They will need to be downloaded from the internet. As the code evoloves so will this list.
+Thank you in advance for your patience:
+
 FastQC
 Seqtk
 Trimmomatic
