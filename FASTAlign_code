@@ -2,7 +2,7 @@
 
 ######### Place all .fastq files to be analyzed into a single working directory
 ######### Rename .fastq files such that each read pair ends with _R1.fastq or _R2.fastq
-######### Currently DATAlign only supports .fastq input; gzipped files coming soon, but code can be manipulated to run gzipped files easily
+######### Currently FASTAlign only supports .fastq input; gzipped files coming soon, but code can be manipulated to run gzipped files easily
 ######### Make filenames reference list for all subsequent codes; creates two files titled "filenames" and "filenames_uniq" containing file names listed
 
 ls *.fastq | cut -f 1 -d '.' > filenames
